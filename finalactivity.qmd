@@ -1,0 +1,97 @@
+---
+title: "final_activity"
+format: html
+editor: visual
+---
+#### Setup ####
+```{r}
+pacman::p_load("tidyverse","ggthemes", "janitor","here")
+```
+
+
+```{r}
+madison_ice <- read_csv(here("data","ntl33_v7.csv"), na = c(-999,""))
+
+madison_meteo <- read_csv((here("data","ntl20_v6.csv")))
+```
+#### Prelim Data vis ####
+
+```{r}
+ggplot(madison_ice, aes(x = lakeid, y = ice_duration))+
+  geom_boxplot()+
+  labs(x = "Lake",
+       y = "Duration of Ice (days)",
+       title = "Duration of Ice at different lakes ",
+       )+
+  scale_x_discrete(labels = c("Mendota", 
+                              "Monona",
+                              "Wingra"))+
+  theme_clean()
+       
+  
+```
+
+#### Mean Ice duration ####
+
+```{r}
+madison_ice_sub <- madison_ice %>% 
+  drop_na(ice_duration) %>% 
+  mutate(year = as.factor(year4)) %>% 
+  group_by(year) %>% 
+  summarize(meanbyyear = mean(ice_duration, na.rm = TRUE))
+```
+
+#exploratory check 
+
+```{r}
+ggplot(madison_ice_sub, aes(x = year, y = meanbyyear))+
+  geom_point(color = "forestgreen")+
+  labs(x = "Year", 
+       y = "Mean Ice Coverage",
+       title = "Mean Ice coverage by Year")+
+  scale_x_discrete(breaks = seq(from =1850, to = 2020, by = 20))+
+  theme_clean()
+```
+
+
+## Joining
+
+```{r}
+mean_meteo <-  madison_meteo %>%
+  filter(month %in% c(1,2,12)) %>% 
+  mutate (year = as.factor(year4)) %>% 
+  group_by(year) %>% 
+  summarize(meanairtemp = mean(ave_air_temp_adjusted))
+```
+
+
+```{r}
+madison_joined <- full_join(madison_ice_sub, mean_meteo)
+
+ggplot(madison_joined, aes(x = meanbyyear, y  = meanairtemp))+
+  geom_point(color = "blue")+
+  labs (x = "Mean Ice coverage",
+        y = "Mean Air Temperature",
+        title = "Mean ice coverage by air temperature")+
+  theme_clean()
+```
+I notice that colder temperatures dont automatically mean a greater ice coverage. The highest mean ice coverage was acheived at a comparably warm mean air temperature.
+
+#### Last one ####
+```{r}
+madison_ice_final <- madison_ice %>% 
+  filter(year4 >= 1970) %>% 
+  mutate(date = lubridate::yday(ice_off)) %>% 
+  select(c(date, ice_duration, year4))
+```
+
+```{r}
+ggplot(madison_ice_final, aes(x = year4, y = date))+
+  geom_line()+
+  labs(x = "Year",
+       y = "Ice off day",
+       title = "The day the ice was off 1970 - 2020"
+  )+
+  theme_clean()
+```
+
